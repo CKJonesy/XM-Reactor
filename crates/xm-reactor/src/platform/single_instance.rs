@@ -124,10 +124,11 @@ mod tests {
         });
         assert_eq!(claimed.recv().unwrap(), (true, false));
 
-        // While the owner lives, the wait times out.
+        // While the owner lives, the wait times out. Windows rounds a wait to its scheduler tick,
+        // so it can return a few milliseconds early; the point is that it waited at all.
         let start = Instant::now();
         assert!(!wait_and_close(open(&name).unwrap(), 200));
-        assert!(start.elapsed() >= Duration::from_millis(200));
+        assert!(start.elapsed() >= Duration::from_millis(150));
 
         // Once the owner is gone, as when the app exits, the wait ends at once.
         quit.send(()).unwrap();
