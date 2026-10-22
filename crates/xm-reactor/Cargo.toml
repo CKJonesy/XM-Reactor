@@ -1,0 +1,33 @@
+[package]
+name = "xm-reactor"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/CKJonesy/XM-Reactor"
+build = "build.rs"
+
+[[bin]]
+name = "XMReactor"
+path = "src/main.rs"
+
+[dependencies]
+xm-core = { path = "../xm-core" }
+windows-reactor = { git = "https://github.com/microsoft/windows-rs", rev = "0a5ced4d9082c34c694d06b015cfe95f47011c1d" }
+windows = { version = "=0.62.2", features = [
+    "Data_Xml_Dom",
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_Storage_Packaging_Appx",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+    "UI_Notifications",
+] }
+
+[build-dependencies]
+embed-resource = "3"

@@ -1,0 +1,13 @@
+/target
+/.superpowers/
+*.msi
+out/
+/docs/superpowers/
+
+# Impeccable design-context files stay local (owner decision 2026-10-20)
+/.impeccable/
+/PRODUCT.md
+/DESIGN.md
+
+# The owner's build dir; keep local (CI sets CARGO_TARGET_DIR)
+/.cargo/config.toml

@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/xm-core", "crates/xm-reactor", "crates/xm-tools"]
+resolver = "2"

@@ -1,0 +1,17 @@
+[package]
+name = "xm-tools"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/CKJonesy/XM-Reactor"
+
+[[bin]]
+name = "cutout"
+path = "src/main.rs"
+
+[[bin]]
+name = "tray-icons"
+path = "src/tray_icons.rs"
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "ico"] }

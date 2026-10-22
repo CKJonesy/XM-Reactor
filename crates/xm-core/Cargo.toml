@@ -1,0 +1,27 @@
+[package]
+name = "xm-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/CKJonesy/XM-Reactor"
+
+[dependencies]
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = [
+    "Devices_Bluetooth",
+    "Devices_Bluetooth_Rfcomm",
+    "Devices_Enumeration",
+    "Devices_Radios",
+    "Foundation",
+    "Foundation_Collections",
+    "Media_Control",
+    "Networking",
+    "Networking_Sockets",
+    "Storage_Streams",
+    "Win32_System_Time",
+    "Win32_System_WinRT",
+] }

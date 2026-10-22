@@ -1,0 +1,114 @@
+<!--
+  XM Reactor per-user MSI (WiX 5). Built by build.ps1, which passes Version and StageDir.
+  Installs XMReactor.exe and LICENSES.md to %LOCALAPPDATA%\Programs\XM Reactor with a Start menu shortcut carrying
+  the app's AUMID; the one dialog offers "Start when I sign in". Install and uninstall close a running XMReactor.exe
+  first. Uninstall runs "XMReactor.exe -\-uninstall-cleanup" before the files-in-use check, which stops a running copy
+  (so Windows never asks to close it), removes the Run value and notification AUMID the app may have written and asks
+  whether to delete %LOCALAPPDATA%\XM Reactor (settings and logs); a silent, basic or passive uninstall keeps them.
+  Cancelling the uninstall after that point leaves the app stopped and its registrations gone (deliberate: the
+  cleanup is the app's own, not an MSI action, so rollback does not undo it). An upgrade never runs the cleanup, so
+  settings and the Run value survive it; the sign-in tick box on an upgrade cannot clear a Run value the app wrote
+  itself, since no MSI component owns that one.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="XM Reactor" Manufacturer="XM Reactor" Version="$(Version)" Scope="perUser"
+           UpgradeCode="B1A407AB-AD01-4368-94BA-5320A475F1B2">
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of XM Reactor is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- app.ico is staged beside the exe for this icon only; it is not installed. -->
+    <Icon Id="AppIcon.ico" SourceFile="$(StageDir)\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- No Repair either: it would rewrite the Run value a user had switched off in Settings. -->
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="STARTWITHWINDOWS" Value="1" />
+    <!-- An upgrade keeps the user's choice: the sign-in option stays off unless the Run value is already there. -->
+    <Property Id="EXISTINGRUN">
+      <RegistrySearch Id="ExistingRun" Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="XM Reactor" Type="raw" />
+    </Property>
+    <SetProperty Id="STARTWITHWINDOWS" Value="{}" After="AppSearch" Sequence="first" Condition="WIX_UPGRADE_DETECTED AND NOT EXISTINGRUN" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="XM Reactor" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main">
+      <Component Id="MainExe" Directory="INSTALLFOLDER">
+        <File Id="XMReactor.exe" Source="$(StageDir)\XMReactor.exe" />
+      </Component>
+      <Component Id="Licences" Directory="INSTALLFOLDER">
+        <File Id="LICENSES.md" Source="$(StageDir)\LICENSES.md" />
+      </Component>
+
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
+        <Shortcut Id="AppShortcut" Name="XM Reactor" Target="[INSTALLFOLDER]XMReactor.exe" WorkingDirectory="INSTALLFOLDER">
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="app.xmreactor.windows" />
+        </Shortcut>
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <!-- Only removed when nothing else uses it; Windows Installer leaves a non-empty folder alone. -->
+        <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\XM Reactor" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Same value the app's "Open at sign-in" writes, so the app shows it switched on -->
+      <Component Id="RunAtSignIn" Directory="INSTALLFOLDER" Condition="STARTWITHWINDOWS=&quot;1&quot;">
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="XM Reactor" Type="string"
+                       Value="&quot;[INSTALLFOLDER]XMReactor.exe&quot;" KeyPath="yes" />
+      </Component>
+    </Feature>
+
+    <util:CloseApplication Id="CloseApp" Target="XMReactor.exe" CloseMessage="yes" TerminateProcess="1" Timeout="3" RebootPrompt="no" />
+
+    <CustomAction Id="CleanupAsk" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]XMReactor.exe&quot; --uninstall-cleanup"
+                  Execute="immediate" Return="ignore" />
+    <CustomAction Id="CleanupQuiet" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]XMReactor.exe&quot; --uninstall-cleanup --quiet"
+                  Execute="immediate" Return="ignore" />
+    <InstallExecuteSequence>
+      <!-- Before InstallValidate, so the running copy is gone before Windows checks for files in use. -->
+      <Custom Action="CleanupAsk" Before="InstallValidate" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND UILevel &gt; 3" />
+      <Custom Action="CleanupQuiet" After="CleanupAsk" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND UILevel &lt;= 3" />
+    </InstallExecuteSequence>
+
+    <UI Id="XmUI">
+      <TextStyle Id="XmFont" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="XmFontTitle" FaceName="Segoe UI" Size="12" />
+      <Property Id="DefaultUIFont" Value="XmFont" />
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="ExitDialog" />
+      <DialogRef Id="CancelDlg" />
+
+      <Dialog Id="XmWelcomeDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="24" Transparent="yes" NoPrefix="yes"
+                 Text="{\XmFontTitle}Install [ProductName] [ProductVersion]" />
+        <Control Id="Description" Type="Text" X="20" Y="54" Width="330" Height="40" Transparent="yes" NoPrefix="yes"
+                 Text="Controls Sony WH-1000XM6 headphones from the notification area. Installs for your Windows account only; no administrator rights needed." />
+        <Control Id="StartWithWindows" Type="CheckBox" X="20" Y="104" Width="330" Height="18" Property="STARTWITHWINDOWS"
+                 CheckBoxValue="1" Text="Start [ProductName] when I sign in to Windows" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Install" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Install">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="XmWelcomeDlg" Before="ProgressDlg" Condition="NOT Installed" />
+      </InstallUISequence>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+    </UI>
+    <UIRef Id="WixUI_Common" />
+  </Package>
+</Wix>

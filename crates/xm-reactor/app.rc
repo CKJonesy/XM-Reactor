@@ -1,0 +1,29 @@
+1 ICON "assets/app.ico"
+1 24 "app.manifest"
+
+// VER_* come from build.rs (the Cargo version), so the exe's Details tab and the MSI's file
+// version never drift from Cargo.toml. 0x40004 is VOS_NT_WINDOWS32 and 0x1 is VFT_APP.
+1 VERSIONINFO
+FILEVERSION VER_MAJOR,VER_MINOR,VER_PATCH,0
+PRODUCTVERSION VER_MAJOR,VER_MINOR,VER_PATCH,0
+FILEOS 0x40004L
+FILETYPE 0x1L
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "XM Reactor"
+      VALUE "FileDescription", "XM Reactor"
+      VALUE "FileVersion", VER_STR
+      VALUE "InternalName", "XMReactor"
+      VALUE "OriginalFilename", "XMReactor.exe"
+      VALUE "ProductName", "XM Reactor"
+      VALUE "ProductVersion", VER_STR
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

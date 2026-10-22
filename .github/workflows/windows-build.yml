@@ -1,0 +1,66 @@
+# Builds, tests and packages XM Reactor on every push to main (and by hand on any branch), and attaches
+# the MSI and portable zip to a GitHub Release when a v* tag is pushed. Uses the same installer/build.ps1
+# as a desk build, so the two cannot drift.
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  # The repo's .cargo/config.toml points at a folder that only exists on the owner's PC.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check the tag matches Cargo.toml
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $version = ((cargo metadata --format-version 1 --no-deps | ConvertFrom-Json).packages | Where-Object name -eq 'xm-reactor').version
+          if ("v$version" -ne '${{ github.ref_name }}') { throw "tag ${{ github.ref_name }} does not match Cargo version $version" }
+
+      - name: Test
+        run: cargo test --workspace
+
+      - name: Install WiX
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Build and package
+        run: pwsh installer/build.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XM-Reactor-windows
+          path: |
+            installer/out/*.msi
+            installer/out/*.zip
+          if-no-files-found: error
+
+  # Only this job holds a write token, and only on a tag.
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: XM-Reactor-windows
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

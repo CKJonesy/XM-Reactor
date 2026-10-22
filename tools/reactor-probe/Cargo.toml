@@ -1,0 +1,10 @@
+[package]
+name = "reactor-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+windows-reactor = { git = "https://github.com/microsoft/windows-rs", rev = "0a5ced4d9082c34c694d06b015cfe95f47011c1d" }
+
+[workspace]
